@@ -5,7 +5,7 @@
 #   Phil Allen - phil@hilands.com                                      #
 # Last Edited By :                                                     #
 #   2009120500 added reset phil@hilands.com                            #
-# Version : 2010050800                                                 #
+# Version : 2011062800                                                 #
 #                                                                      #
 # Copyright :                                                          #
 #   Database Include                                                   #
@@ -130,13 +130,17 @@ class tpl
 		$this->arrContent = $arrContent;
 	}
 	
+	####################################################################
+	# error_check                                                      #
+	####################################################################
 	function error_check()
 	#function parse_str($strData, $arrContent, $strStorage = 'strFileContent', $boolAppend = false)
 	{
 		foreach ($this->arrContent as $strKey => $strValue)
 		{
+			#echo $strKey."<br />\n";
 /*
-			echo $strKey."<br />\n";
+
 			if ($strKey == 'addtoany')
 			{
 				#echo $this->strTemplate."<br />\n";
@@ -153,17 +157,34 @@ echo $this->strTemplate;
 */
 			#if (!preg_match("[".$strKey."]", $this->strFileContent)) //oops passed wrong string
 // I think the brackets [] may be giving some type of error..
-			if (!preg_match("[".$strKey."]", $this->strTemplate))
-			{
-#if ($strKey == 'addtoany')
+			//http://stackoverflow.com/questions/1519318/preg-match-all-200932
+			$strMatch = "/\[".$strKey."\]/"; // pregmatch bug with [ brackets ]
+			#$strMatch = "[".$strKey."]";
+			#echo 'strmatch : '.$strMatch.'<br />';
+#if ($strKey == 'news')
 #{
-#	echo "are were here";
+	#echo 'key is news';
+	#echo $this->strTemplate; #exit;
+#}
+
+			#if (!preg_match("[".$strKey."]", $this->strTemplate))
+			if (!preg_match($strMatch, $this->strTemplate))
+			{
+
+#if ($strKey == 'news')
+#{
+	#echo "are were here".$strMatch;
 #}
 				// should not have found a match.
 				if ($this->boolFile)
-					$this->strError = 'Template Warning "['.$strKey.']" does not exist in '.$this->strFile."<br />\n";
+					$this->strError .= 'Template Warning "['.$strKey.']" does not exist in '.$this->strFile."<br />\n";
 				else
-					$this->strError = 'Template Warning "['.$strKey.']" does not exist in string variable'."<br />\n";
+					$this->strError .= 'Template Warning "['.$strKey.']" does not exist in string variable'."<br />\n";
+			}
+			else
+			{
+				// testing
+				#echo 'we are here<br />';
 			}
 		}
 		#return true;
@@ -178,8 +199,10 @@ echo $this->strTemplate;
 		$this->set_file($strFile, $arrContent, $boolFile);
 		$this->error_check();
 		$this->parse_str($this->strTemplate, $this->arrContent);
-
 	}
+	####################################################################
+	# go_old                                                           #
+	####################################################################
 	function go_old($strFile, $arrContent, $boolFile = true, $arrLoopContent=array(), $arrILoopContent=array())
 	#function go($strFile, $arrContent, $arrLoopContent=array(), $arrILoopContent=array())
 	#function go($strFile, $arrContent, $arrLoop, $arrILoop)
@@ -377,6 +400,8 @@ echo $this->strTemplate;
 			// to flag run later.
 			if ($strKey != "error")
 			{
+#echo $strKey.'<br />';
+#echo "\n\n\n<!---------- ".$strKey."-------->".$strData."<!---------- ".$strKey."-------->\n\n\n";
 				if (preg_match("[".$strKey."]", $strData))
 				{
 					$strData = str_replace("[".$strKey."]", $arrContent[$strKey], $strData);
