@@ -5,7 +5,7 @@
 #   Phil Allen - phil@hilands.com                                      #
 # Last Edited By :                                                     #
 #   2009120500 added reset phil@hilands.com                            #
-# Version : 2009120500                                                 #
+# Version : 2010050800                                                 #
 #                                                                      #
 # Copyright :                                                          #
 #   Database Include                                                   #
@@ -75,16 +75,19 @@
 class tpl
 {
 	// template and parsed templates!
+	var $strFile;
 	var $strTemplate;
 	var $strFileContent;
 	// booleans for interaction stuff
 	var $boolVerbose;
 	var $boolDie;
+	var $boolFile;
 	// error
-	var $strError;
+	var $strError = "";
 	// storage arrays
 	var $arrILoops = array();
 	var $arrLoops = array();
+	var $arrContent = array();
 	// storage strings
 	var $strLoops;
 	var $strILoops;
@@ -100,14 +103,90 @@ class tpl
 	#{
 		// this should have some type of error checking.
 	#}
+	function reset_variables()
+	{
+		$this->strFile = "";
+		$this->strTemplate = "";
+		$this->strFileContent = "";
+		$this->boolVerbose = "";
+		$this->boolDie = "";
+		$this->boolFile = "";
+		$this->strError = "";
+		$this->arrILoops = array();
+		$this->arrLoops = array();
+		$this->arrContent = array();
+		$this->strLoops = "";
+		$this->strILoops = "";
+	}
+	####################################################################
+	# new starter                                                      #
+	####################################################################
+	// this will allow us to check for errors.
+	function set_file($strFile, $arrContent, $boolFile = true)
+	{
+		$this->boolFile = $boolFile;
+		// sets $this->strFileContent
+		$this->open_file($strFile);
+		$this->arrContent = $arrContent;
+	}
+	
+	function error_check()
+	#function parse_str($strData, $arrContent, $strStorage = 'strFileContent', $boolAppend = false)
+	{
+		foreach ($this->arrContent as $strKey => $strValue)
+		{
+/*
+			echo $strKey."<br />\n";
+			if ($strKey == 'addtoany')
+			{
+				#echo $this->strTemplate."<br />\n";
+				#echo 'if (!preg_match("[".'.$strKey.'."]", '.$this->strTemplate.'))';
+echo "<br /><br />";
+if (preg_match("[".$strKey."]", "something [".$strKey."] something"))
+	echo "Match";
+else
+	echo "No Match";
+echo "<br /><br />";
+
+echo $this->strTemplate;
+			}
+*/
+			#if (!preg_match("[".$strKey."]", $this->strFileContent)) //oops passed wrong string
+// I think the brackets [] may be giving some type of error..
+			if (!preg_match("[".$strKey."]", $this->strTemplate))
+			{
+#if ($strKey == 'addtoany')
+#{
+#	echo "are were here";
+#}
+				// should not have found a match.
+				if ($this->boolFile)
+					$this->strError = 'Template Warning "['.$strKey.']" does not exist in '.$this->strFile."<br />\n";
+				else
+					$this->strError = 'Template Warning "['.$strKey.']" does not exist in string variable'."<br />\n";
+			}
+		}
+		#return true;
+	}
+	// run these two then do parse_str
 	####################################################################
 	# go                                                               #
 	#     This should run all "helper" functions                       #
 	####################################################################
-	function go($strFile, $arrContent, $arrLoopContent=array(), $arrILoopContent=array())
-#	function go($strFile, $arrContent, $arrLoop, $arrILoop)
+	function go($strFile, $arrContent, $boolFile = true)
 	{
-		//open file
+		$this->set_file($strFile, $arrContent, $boolFile);
+		$this->error_check();
+		$this->parse_str($this->strTemplate, $this->arrContent);
+
+	}
+	function go_old($strFile, $arrContent, $boolFile = true, $arrLoopContent=array(), $arrILoopContent=array())
+	#function go($strFile, $arrContent, $arrLoopContent=array(), $arrILoopContent=array())
+	#function go($strFile, $arrContent, $arrLoop, $arrILoop)
+	{
+		// added bool file to open_file to have the ability
+		// to use strFile as a content string instead of a file.
+		$this->boolFile = $boolFile;
 		$this->open_file($strFile);
 		$this->parse_chunks('<!--[iloop]-->', 'iloop', 'arrILoops');
 		$this->parse_chunks('<!--[loop]-->', 'loop', 'arrLoops');
@@ -182,22 +261,30 @@ class tpl
 	####################################################################
 	function open_file($strFile)
 	{
-		if (file_exists($strFile) && filesize($strFile) != 0)
+		if ($this->boolFile)
 		{
-			if(!$fileRead = fopen($strFile, "r"))
+			$this->strFile = $strFile;
+			if (file_exists($strFile) && filesize($strFile) != 0)
 			{
-				echo 'cannot read file '.$strFile.'<br />';
-				exit;
+				if(!$fileRead = fopen($strFile, "r"))
+				{
+					echo 'cannot read file '.$strFile.'<br />';
+					exit;
+				}
+				else
+				{
+					$this->strTemplate = fread($fileRead, filesize($strFile));
+				}
 			}
 			else
 			{
-				$this->strTemplate = fread($fileRead, filesize($strFile));
+				echo 'File Does Not Exist, or File is empty : '.$strFile;
+				exit;
 			}
 		}
 		else
 		{
-			echo 'File Does Not Exist, or File is empty : '.$strFile;
-			exit;
+			$this->strTemplate = $strFile;
 		}
 	}
 	####################################################################
@@ -282,15 +369,35 @@ class tpl
 	####################################################################
 	function parse_str($strData, $arrContent, $strStorage = 'strFileContent', $boolAppend = false)
 	{
+		$boolError = false;
 		foreach ($arrContent as $strKey => $strValue)
 		{
-			if (preg_match("[".$strKey."]", $strData))
+			// the error message needs to be processed last. 
+			// so a simple if not error run as normal. Otherwise set boolean
+			// to flag run later.
+			if ($strKey != "error")
 			{
-				$strData = str_replace("[".$strKey."]", $arrContent[$strKey], $strData);
+				if (preg_match("[".$strKey."]", $strData))
+				{
+					$strData = str_replace("[".$strKey."]", $arrContent[$strKey], $strData);
 # debug
 #	echo 'found match for ['.$strKey.']';
+				}
+			}
+			else
+			{
+				$boolError = true;
 			}
 		}
+		// end of for each process error
+		if ($boolError)
+		{
+			if (preg_match("[error]", $strData))
+			{
+				$strData = str_replace("[error]", $arrContent['error'], $strData);
+			}
+		}
+		//store strData in $this->strFileContent
 		if ($boolAppend)
 			$this->$strStorage .= $strData;
 		else
