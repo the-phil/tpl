@@ -4,8 +4,8 @@
 # Author(s) :                                                          #
 #   Phil Allen - phil@hilands.com                                      #
 # Last Edited By :                                                     #
-#   phil@hilands.com                                                   #
-# Version : 2006061500                                                 #
+#   2009120500 added reset phil@hilands.com                            #
+# Version : 2009120500                                                 #
 #                                                                      #
 # Copyright :                                                          #
 #   Database Include                                                   #
@@ -147,6 +147,15 @@ class tpl
 			// reset strLoops for each time we go through since we just pushed the data into the main content.
 			$this->strILoops = null;
 		}
+	}
+	####################################################################
+	#                                                                  #
+	####################################################################
+	// reset function
+	function set_reset()
+	{
+		$this->strTemplate = "";
+		$this->strFileContent = "";
 	}
 	####################################################################
 	# Gets                                                             #
