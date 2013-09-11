@@ -4,12 +4,22 @@
 # Author(s) :                                                          #
 #   Phil Allen - phil@hilands.com                                      #
 # Last Edited By :                                                     #
-#   2009120500 added reset phil@hilands.com                            #
-# Version : 2011062800                                                 #
+#   2009120500 added set_reset function to reset template and content  #
+#      phil@hilands.com                                                #
+#   2010050800 Cleaned up variables for multiple runs memory logic     #
+#      issues, reset_variables function, error checks, ability to      #
+#      read file or string templates. phil@hilands.com                 #
+#   2011062800 Fixed pregmatch special characters for brackets in      #
+#      function error_check strMatch, error strings concatenate.       #
+#      phil@hilands.com                                                #
+#   20130910 Fixed pregmatch in function parse_str. Cleaned notes,etc. #
+#      phil@hilands.com                                                #
+#                                                                      #
+# Version : 2013091000                                                 #
 #                                                                      #
 # Copyright :                                                          #
-#   Database Include                                                   #
-#   Copyright (C) 2005 Philip J Allen                                  #
+#   Copyright (C) 2005,2006,2007,2008,2009,2010,2011,2012,2013         #
+#   Philip J Allen                                                     #
 #                                                                      #
 #   This file is free software; you can redistribute it and/or modify  #
 #   it under the terms of the GNU General Public License as published  #
@@ -26,24 +36,16 @@
 #   Foundation, Inc., 51 Franklin St, Fifth Floor,                     #
 #   Boston, MA  02110-1301  USA                                        #
 #                                                                      #
-# External Files:                                                      #
-#   List of External Files all require/includes                        #
-#                                                                      #
 # General Information (algorithm) :                                    #
-#   Tested to work with PHP 5                                          #
+#   Parses HTML file/string for bracketed blocks [block] and replaces  #
+#   blocks with content                                                #
 #                                                                      #
-# Functions :                                                          #
-#   see classes                                                        #
-#                                                                      #
-# Classes :                                                            #
-#   tpl                                                                #
-#                                                                      #
-# CSS :                                                                #
-#   db_error - used in span for custom database errors                 #
-#   db_sql_error_message - used in span for SQL default error          #
-#       messages and error numbers                                     #
-#                                                                      #
-# JavaScript :                                                         #
+# Usage :                                                              #
+#   include_once ("tpl.class.inc.php"); // include class file          #
+#   $refTPL = new tpl(); // instantiate object                         #
+#   $arrContent['content'] = $strContent; // create block for [content]#
+#   $refTPL->go($strTemplateFile, $arrContent); // process template    #
+#   echo $refTPL->get_content(); // display processed template         #
 #                                                                      #
 # Variable Lexicon :                                                   #
 #   String             - $strStringName                                #
@@ -91,11 +93,6 @@ class tpl
 	// storage strings
 	var $strLoops;
 	var $strILoops;
-#	var $arrStorA = array();
-#	var $arrStorB = array();
-#	var $arrStorC = array();
-#	var $arrStorD = array();
-	
 	####################################################################
 	# Constructor                                                      #
 	####################################################################
@@ -103,6 +100,9 @@ class tpl
 	#{
 		// this should have some type of error checking.
 	#}
+	####################################################################
+	# reset_variables                                                  #
+	####################################################################
 	function reset_variables()
 	{
 		$this->strFile = "";
@@ -119,7 +119,7 @@ class tpl
 		$this->strILoops = "";
 	}
 	####################################################################
-	# new starter                                                      #
+	# set_file                                                         #
 	####################################################################
 	// this will allow us to check for errors.
 	function set_file($strFile, $arrContent, $boolFile = true)
@@ -129,7 +129,6 @@ class tpl
 		$this->open_file($strFile);
 		$this->arrContent = $arrContent;
 	}
-	
 	####################################################################
 	# error_check                                                      #
 	####################################################################
@@ -139,57 +138,22 @@ class tpl
 		foreach ($this->arrContent as $strKey => $strValue)
 		{
 			#echo $strKey."<br />\n";
-/*
-
-			if ($strKey == 'addtoany')
-			{
-				#echo $this->strTemplate."<br />\n";
-				#echo 'if (!preg_match("[".'.$strKey.'."]", '.$this->strTemplate.'))';
-echo "<br /><br />";
-if (preg_match("[".$strKey."]", "something [".$strKey."] something"))
-	echo "Match";
-else
-	echo "No Match";
-echo "<br /><br />";
-
-echo $this->strTemplate;
-			}
-*/
-			#if (!preg_match("[".$strKey."]", $this->strFileContent)) //oops passed wrong string
-// I think the brackets [] may be giving some type of error..
+			// brackets [] are giving us errors.
 			//http://stackoverflow.com/questions/1519318/preg-match-all-200932
-			$strMatch = "/\[".$strKey."\]/"; // pregmatch bug with [ brackets ]
 			#$strMatch = "[".$strKey."]";
+			$strMatch = "/\[".$strKey."\]/"; // pregmatch bug with [ brackets ]
 			#echo 'strmatch : '.$strMatch.'<br />';
-#if ($strKey == 'news')
-#{
-	#echo 'key is news';
-	#echo $this->strTemplate; #exit;
-#}
-
 			#if (!preg_match("[".$strKey."]", $this->strTemplate))
 			if (!preg_match($strMatch, $this->strTemplate))
 			{
-
-#if ($strKey == 'news')
-#{
-	#echo "are were here".$strMatch;
-#}
 				// should not have found a match.
 				if ($this->boolFile)
 					$this->strError .= 'Template Warning "['.$strKey.']" does not exist in '.$this->strFile."<br />\n";
 				else
 					$this->strError .= 'Template Warning "['.$strKey.']" does not exist in string variable'."<br />\n";
 			}
-			else
-			{
-				// testing
-				#echo 'we are here<br />';
-			}
 		}
-		#return true;
 	}
-	// run these two then do parse_str
 	####################################################################
 	# go                                                               #
 	#     This should run all "helper" functions                       #
@@ -214,7 +178,6 @@ echo $this->strTemplate;
 		$this->parse_chunks('<!--[iloop]-->', 'iloop', 'arrILoops');
 		$this->parse_chunks('<!--[loop]-->', 'loop', 'arrLoops');
 		$this->parse_str($this->strFileContent, $arrContent);
-
 		// put loop arrays in the proper places and fill strFileContent accordingly
 		foreach ($arrLoopContent as $intKey => $arrValue)
 		{
@@ -232,7 +195,6 @@ echo $this->strTemplate;
 			$this->strLoops = null;
 		}
 		#echo $this->strLoops;
-
 		// process internal loop fill and as below.
 		foreach ($arrILoopContent as $intKey => $arrValue)
 		{
@@ -251,9 +213,8 @@ echo $this->strTemplate;
 		}
 	}
 	####################################################################
-	#                                                                  #
+	# set_reset                                                        #
 	####################################################################
-	// reset function
 	function set_reset()
 	{
 		$this->strTemplate = "";
@@ -336,7 +297,7 @@ echo $this->strTemplate;
 			}
 			// loop find needle supress error (@)
 			// we replace the needle with strReplace so loop is not infinit.
-# Debug
+# debug
 #	echo $strNeedle;
 			while(@strpos($this->strFileContent, $strNeedle, $intLocate))
 			{
@@ -363,7 +324,7 @@ echo $this->strTemplate;
 				{
 					$strTempFile .= substr($this->strFileContent,($arrReturn[$intCounter - 1]['e'] + $intNeedleL),(($intPosS - $intNeedleL) - ($arrReturn[$intCounter - 1]['e']+$intNeedleL))).'['.$strReplace.$intCounter.']';
 				}
-#debug
+# debug
 #	echo $strTempFile;
 				// store the locations we ripped somewhere.
 				$arrReturn[$intCounter] = array(
@@ -373,7 +334,7 @@ echo $this->strTemplate;
 					);
 				$intCounter++;
 			}
-# Debug
+# debug
 #	echo $intCounter;
 			if ($intCounter != 0)
 			{
@@ -400,9 +361,9 @@ echo $this->strTemplate;
 			// to flag run later.
 			if ($strKey != "error")
 			{
-#echo $strKey.'<br />';
-#echo "\n\n\n<!---------- ".$strKey."-------->".$strData."<!---------- ".$strKey."-------->\n\n\n";
-				if (preg_match("[".$strKey."]", $strData))
+				$strMatch = "/\[".$strKey."\]/"; // pregmatch bug with [ brackets ]
+				if (preg_match($strMatch, $strData))
+				#if (preg_match("[".$strKey."]", $strData))
 				{
 					$strData = str_replace("[".$strKey."]", $arrContent[$strKey], $strData);
 # debug
@@ -417,7 +378,8 @@ echo $this->strTemplate;
 		// end of for each process error
 		if ($boolError)
 		{
-			if (preg_match("[error]", $strData))
+			#if (preg_match("[error]", $strData))
+			if (preg_match("/\[error\]/", $strData))
 			{
 				$strData = str_replace("[error]", $arrContent['error'], $strData);
 			}
