@@ -3,11 +3,11 @@ PHP tpl is a **Simple block template processing class**.
 
 
 ### Block Definition
-A *block* is a string variable with two square brackets surrounding it. The block content will look like `[content]`. 
+A *block* is a string variable with two square brackets surrounding it. The *block* content will look like `[content]`. 
 
 
 ### How it works
-Take a simple HTML/XHTML/XML file and read it for *block* content based on the array name passed when a file is processed. When a *block* is found the block content is replaced with the string contained in the array defining the block. If multiple *blocks* are defined all *blocks* found will be replaced with the string contained in the array.
+Take a simple HTML/XHTML/XML file and read it for *block* content based on the array name passed when a file is processed. When a *block* is found the *block* content is replaced with the string contained in the array defining the *block*. If multiple *blocks* are defined all *blocks* found will be replaced with the string contained in the array.
 
 
 ### About
