@@ -1,5 +1,4 @@
 # PHP tpl
----
 PHP tpl is a **Simple block template processing class**.
 
 
@@ -16,7 +15,6 @@ The original idea was created to allow easier processing of HTML/XHTML/XML files
 
 
 # Example code
----
 
 ### HTML to be parsed/processed
 Basic HTML with a *"content"* *block*.
